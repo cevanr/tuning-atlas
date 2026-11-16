@@ -68,7 +68,7 @@ button { font: inherit; color: inherit; }
     border-top: 2px solid var(--ink); gap: 0;
     padding: 6px var(--gutter-r) calc(6px + env(safe-area-inset-bottom, 0px)) var(--gutter-l);
   }
-  .tabs a { flex: 1; text-align: center; padding: 12px 0; font-size: 12.5px; }
+  .tabs a { flex: 1; text-align: center; padding: 12px 0; font-size: 12px; letter-spacing: 1px; }
   .brand { font-size: 26px; }
 }
 
@@ -297,6 +297,67 @@ mark { background: var(--hl); color: inherit; padding: 0 1px; }
   .strings span { width: 28px; }
 }
 @media (max-width: 360px) { .chords { grid-template-columns: 1fr; } .big-note { font-size: 80px; } }
+
+/* ---------- fretboard ---------- */
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--ink); border-radius: 2px; overflow: hidden; }
+.seg button {
+  font-family: var(--f-mono); font-size: 12px; letter-spacing: 1.2px; text-transform: uppercase;
+  border: 0; background: var(--card); color: var(--muted); padding: 11px 8px; cursor: pointer; min-height: 42px;
+}
+.seg button + button { border-left: 1px solid var(--ink); }
+.seg button[aria-selected="true"], .seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.seg.small button { font-size: 10.5px; padding: 7px 10px; min-height: 34px; }
+.panel { display: grid; gap: 12px; }
+.cout { background: var(--card); border: 1px solid var(--rule); border-radius: 2px; padding: 14px 16px; display: grid; gap: 4px; text-align: center; }
+.cname { font-family: var(--f-display); font-size: 44px; letter-spacing: 1.5px; line-height: 1; color: var(--ink); min-height: 44px; overflow-wrap: anywhere; }
+.cname.dim { font-size: 30px; color: var(--muted); }
+.calt { font-size: 15px; color: var(--muted); font-style: italic; min-height: 1.4em; }
+.ctab { font-family: var(--f-mono); font-size: 15px; letter-spacing: 4px; color: var(--accent); min-height: 1.4em; }
+.roots { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+.roots button {
+  font-family: var(--f-mono); font-weight: 600; font-size: 14px; padding: 8px 0; border: 1px solid var(--rule);
+  background: var(--card); color: var(--accent); border-radius: 2px; cursor: pointer;
+}
+.roots button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.scale-row { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; }
+.sel { display: grid; gap: 4px; flex: 1 1 200px; min-width: 0; }
+.sel select {
+  font-family: var(--f-mono); font-size: 14px; color: var(--ink); background: var(--card);
+  border: 1px solid var(--rule); border-radius: 2px; padding: 9px 10px; width: 100%; min-height: 40px;
+}
+.hint.left { text-align: left; margin: 0; }
+
+.fb-wrap { background: var(--card); border: 1px solid var(--rule); border-radius: 2px; padding: 8px 6px 10px 0; }
+.fb { display: grid; grid-template-columns: 30px repeat(6, minmax(0, 1fr)); }
+.fb .hd { text-align: center; padding: 2px 0 6px; font-family: var(--f-mono); }
+.fb .hd .sn { display: block; font-size: 9.5px; color: var(--faint); }
+.fb .hd .on { font-size: 13px; font-weight: 600; color: var(--accent); }
+.fb .fn {
+  font-family: var(--f-mono); font-size: 11px; color: var(--faint); text-align: center; align-self: center;
+  font-variant-numeric: tabular-nums; position: relative;
+}
+.fb .fn.inlay { color: var(--accent); font-weight: 600; }
+.fb .cell {
+  position: relative; height: 40px; border: 0; padding: 0; cursor: pointer;
+  background:
+    linear-gradient(to right, transparent calc(50% - var(--w, 1px)), #b9ab95 calc(50% - var(--w, 1px)), #b9ab95 calc(50% + var(--w, 1px)), transparent calc(50% + var(--w, 1px))),
+    linear-gradient(to bottom, transparent calc(100% - 2px), #cfc3b1 calc(100% - 2px));
+}
+.fb .cell.nut { height: 38px; background:
+    linear-gradient(to right, transparent calc(50% - var(--w, 1px)), #b9ab95 calc(50% - var(--w, 1px)), #b9ab95 calc(50% + var(--w, 1px)), transparent calc(50% + var(--w, 1px))),
+    linear-gradient(to bottom, transparent calc(100% - 5px), var(--ink) calc(100% - 5px)); }
+.fb .cell:hover { background-color: var(--card-hover); }
+.fb .cell .dot {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+  font-family: var(--f-mono); font-size: 11px; font-weight: 600; line-height: 1;
+  background: var(--card); border: 2px solid var(--accent); color: var(--accent);
+}
+.fb .cell .dot.on { background: var(--accent); color: #fff; }
+.fb .cell .dot.root { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.fb .cell .dot.ghost { border-style: dashed; border-color: var(--faint); color: var(--faint); background: transparent; }
+.fb .cell.nut .dot.open { background: var(--card); color: var(--accent); }
+.fb .mute { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-family: var(--f-mono); font-size: 14px; color: var(--faint); }
 
 /* ---------- picker sheet ---------- */
 .sheet { position: fixed; inset: 0; z-index: 50; background: rgba(26, 22, 18, .35); display: flex; align-items: flex-end; justify-content: center; }

@@ -25,6 +25,7 @@
     <nav class="tabs" aria-label="Sections">
       <a href="#tune" data-tab="tune">Tune</a>
       <a href="#retune" data-tab="retune">Retune</a>
+      <a href="#frets" data-tab="frets">Frets</a>
       <a href="#atlas" data-tab="atlas">Atlas</a>
     </nav>
   </div>
@@ -111,6 +112,55 @@
     </div>
   </section>
 
+  <!-- ============ FRETBOARD ============ -->
+  <section class="view" id="view-frets" hidden>
+    <div class="col">
+      <button class="pick" type="button" data-pick="tune" aria-label="Change tuning">
+        <span class="pick-k">Tuning</span>
+        <span class="pick-name" id="fretName"></span>
+        <span class="pick-sp" id="fretSp"></span>
+        <span class="pick-chev" aria-hidden="true">▾</span>
+      </button>
+
+      <div class="seg" role="tablist" aria-label="Fretboard mode">
+        <button type="button" role="tab" id="modeChord" aria-selected="true">Name a chord</button>
+        <button type="button" role="tab" id="modeScale" aria-selected="false">Scales</button>
+      </div>
+
+      <div class="panel" id="chordPanel">
+        <div class="cout">
+          <div class="cname" id="cName">Tap the fretboard</div>
+          <div class="calt" id="cAlt">Pick one fret per string. Tap a dot again to mute that string.</div>
+          <div class="ctab" id="cTab" aria-label="Chord shape"></div>
+        </div>
+        <div class="actions">
+          <button class="btn primary" type="button" id="cStrum">▶ Strum</button>
+          <button class="btn" type="button" id="cArp">Arp</button>
+          <button class="btn" type="button" id="cOpen">Open</button>
+          <button class="btn ghost" type="button" id="cClear">Clear</button>
+        </div>
+      </div>
+
+      <div class="panel" id="scalePanel" hidden>
+        <div class="roots" id="roots" role="group" aria-label="Root note"></div>
+        <div class="scale-row">
+          <label class="sel"><span class="set-k">Scale</span>
+            <select id="scaleSel"></select>
+          </label>
+          <div class="seg small" role="group" aria-label="Labels">
+            <button type="button" id="lblNotes" aria-pressed="true">Notes</button>
+            <button type="button" id="lblDeg" aria-pressed="false">Degrees</button>
+          </div>
+        </div>
+        <p class="hint left" id="scaleInfo"></p>
+      </div>
+
+      <div class="fb-wrap">
+        <div class="fb" id="fb" role="grid" aria-label="Fretboard"></div>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ ATLAS ============ -->
   <section class="view" id="view-atlas" hidden>
     <div class="atlas-controls">
@@ -154,6 +204,7 @@
 <script src="js/data.js"></script>
 <script src="js/pitch.js"></script>
 <script src="js/synth.js"></script>
+<script src="js/theory.js"></script>
 <script src="js/app.js"></script>
 <script>
   if ('serviceWorker' in navigator && location.protocol === 'https:') {

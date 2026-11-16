@@ -829,11 +829,11 @@ window.ATLAS = {
 ],
 "chords": [
 {
-"label": "Esus4",
+"label": "E7sus4",
 "fn": "I — Tonic (open)",
 "tab": "0 0 0 0 0 0",
 "fing": "",
-"note": ""
+"note": "The open D adds a flat 7 to the drone"
 },
 {
 "label": "E",
@@ -2043,12 +2043,14 @@ window.ATLAS = {
 "lowc": false
 },
 {
-"name": "Dsus2 Drone",
-"aka": [],
+"name": "D5 Drone",
+"aka": [
+"Dsus2 Drone"
+],
 "spelling": "D A D A D D",
 "cat": "modal",
 "sub": "Experimental / Ambient",
-"desc": "Near-ostrich. Almost no harmonic info. Pure drone — sitar or tanpura quality.",
+"desc": "Near-ostrich. Only D and A, so there is no third at all. Pure drone — sitar or tanpura quality.",
 "tags": [
 "modal",
 "drone",
@@ -2056,11 +2058,11 @@ window.ATLAS = {
 ],
 "chords": [
 {
-"label": "Dsus2",
+"label": "D5",
 "fn": "I — Drone (open)",
 "tab": "0 0 0 0 0 0",
 "fing": "",
-"note": "Root and fifth everywhere, one 2nd on top of nothing"
+"note": "Only roots and fifths. Your melody decides major or minor"
 },
 {
 "label": "D",
@@ -2092,7 +2094,7 @@ window.ATLAS = {
 }
 ],
 "nochords": "",
-"id": "dsus2-drone",
+"id": "d5-drone",
 "lowc": false
 },
 {
@@ -2201,7 +2203,7 @@ window.ATLAS = {
 ],
 "chords": [
 {
-"label": "G5",
+"label": "Csus2",
 "fn": "Open — Shimmer",
 "tab": "0 0 0 0 0 0",
 "fing": "",

@@ -236,6 +236,7 @@
     tuner.lock = null; tuner.active = 0; tuner.done.clear();
     if (tuner.drone) startDrone();
     renderTune();
+    if (!$('#view-frets').hidden) { fret.sel = [null, null, null, null, null, null]; renderFrets(); }
   }
 
   /* ================= RETUNE VIEW ================= */
@@ -338,6 +339,103 @@
     store.set({ fromId: state.fromId, toId: state.toId });
     if (guide.on) endGuide(false); renderRetune();
   });
+
+  /* ================= FRETBOARD VIEW ================= */
+  const T = window.Theory;
+  const FRETS = 15, INLAYS = new Set([3, 5, 7, 9, 12, 15]);
+  const fret = {
+    mode: saved.fretMode === 'scale' ? 'scale' : 'chord',
+    sel: [null, null, null, null, null, null],
+    root: Number.isInteger(saved.scaleRoot) ? saved.scaleRoot : 0,
+    scale: T.SCALES.some(s => s[0] === saved.scale) ? saved.scale : 'maj-pent',
+    labels: saved.fretLabels === 'deg' ? 'deg' : 'notes'
+  };
+
+  function chordMidis() {
+    const m = midis(byId(state.tuneId));
+    return fret.sel.map((f, i) => f == null ? null : m[i] + f);
+  }
+  function renderFretChord() {
+    const notes = chordMidis(), played = notes.filter(n => n != null);
+    $('#cTab').textContent = fret.sel.map(f => f == null ? 'x' : f).join(' ');
+    const name = $('#cName'), alt = $('#cAlt');
+    if (!played.length) {
+      name.textContent = 'Tap the fretboard'; name.classList.add('dim');
+      alt.textContent = 'Pick one fret per string. Tap a dot again to mute that string.';
+      return;
+    }
+    const names = T.nameChord(played);
+    name.classList.toggle('dim', !names.length);
+    name.textContent = names.length ? names[0].name : 'No standard name';
+    const pcs = [...new Set(played.map(n => NAMES[n % 12]))].join(' · ');
+    alt.textContent = (names.length > 1 ? `Also ${names.slice(1, 3).map(n => n.name).join(', ')} · ` : '') + `Notes: ${pcs}`;
+  }
+  function scaleOf() { return T.SCALES.find(s => s[0] === fret.scale); }
+  function renderFretScale() {
+    $('#roots').innerHTML = NAMES.map((n, i) => `<button type="button" data-root="${i}" aria-pressed="${fret.root === i}">${n}</button>`).join('');
+    $('#scaleSel').innerHTML = T.SCALES.map(([id, name]) => `<option value="${id}"${id === fret.scale ? ' selected' : ''}>${esc(name)}</option>`).join('');
+    $('#lblNotes').setAttribute('aria-pressed', fret.labels === 'notes');
+    $('#lblDeg').setAttribute('aria-pressed', fret.labels === 'deg');
+    const sc = scaleOf();
+    $('#scaleInfo').textContent = `${NAMES[fret.root]} ${sc[1]}: ` + sc[2].map(iv => NAMES[(fret.root + iv) % 12]).join(' · ') + '. Dark dots are the root. Tap any dot to hear it.';
+  }
+  function renderFretboard() {
+    const t = byId(state.tuneId), m = midis(t);
+    const sc = scaleOf(), inScale = new Set(sc[2]);
+    let h = '<span></span>' + m.map((x, i) => `<span class="hd"><span class="sn">${STR_NUM[i]}</span><span class="on">${noteHTML(x)}</span></span>`).join('');
+    for (let f = 0; f <= FRETS; f++) {
+      h += `<span class="fn${INLAYS.has(f) ? ' inlay' : ''}">${f === 0 ? '' : f}</span>`;
+      for (let i = 0; i < 6; i++) {
+        const note = m[i] + f, pc = ((note % 12) + 12) % 12;
+        const w = (1.6 - i * 0.18).toFixed(2) + 'px'; // heavier low strings
+        let inner = '', label = `String ${STR_NUM[i]}, ${f === 0 ? 'open' : 'fret ' + f}: ${noteText(note)}`;
+        if (fret.mode === 'chord') {
+          if (fret.sel[i] === f) inner = `<span class="dot on${f === 0 ? ' open' : ''}">${NAMES[pc]}</span>`;
+          else if (f === 0 && fret.sel[i] == null) inner = '<span class="mute" aria-hidden="true">×</span>';
+        } else {
+          const iv = (pc - fret.root + 12) % 12;
+          if (inScale.has(iv)) inner = `<span class="dot${iv === 0 ? ' root' : ''}">${fret.labels === 'deg' ? T.DEG[iv] : NAMES[pc]}</span>`;
+        }
+        h += `<button type="button" class="cell${f === 0 ? ' nut' : ''}" style="--w:${w}" data-s="${i}" data-f="${f}" aria-label="${esc(label)}">${inner}</button>`;
+      }
+    }
+    $('#fb').innerHTML = h;
+  }
+  function renderFrets() {
+    const t = byId(state.tuneId);
+    $('#fretName').textContent = t.name; $('#fretSp').textContent = t.spelling.replace(/\s*\(.*\)/, '');
+    $('#modeChord').setAttribute('aria-selected', fret.mode === 'chord');
+    $('#modeScale').setAttribute('aria-selected', fret.mode === 'scale');
+    $('#chordPanel').hidden = fret.mode !== 'chord';
+    $('#scalePanel').hidden = fret.mode !== 'scale';
+    if (fret.mode === 'chord') renderFretChord(); else renderFretScale();
+    renderFretboard();
+  }
+  const setMode = mode => { fret.mode = mode; store.set({ fretMode: mode }); renderFrets(); };
+  $('#modeChord').addEventListener('click', () => setMode('chord'));
+  $('#modeScale').addEventListener('click', () => setMode('scale'));
+  $('#fb').addEventListener('click', e => {
+    const c = e.target.closest('.cell'); if (!c) return;
+    const i = +c.dataset.s, f = +c.dataset.f, note = midis(byId(state.tuneId))[i] + f;
+    if (fret.mode === 'chord') {
+      fret.sel[i] = fret.sel[i] === f ? null : f;
+      if (fret.sel[i] != null) S.play([note], 0);
+      renderFretChord(); renderFretboard();
+    } else {
+      S.play([note], 0); flash(c.querySelector('.dot') || c);
+    }
+  });
+  $('#cStrum').addEventListener('click', () => S.play(chordMidis().filter(n => n != null), 0.03));
+  $('#cArp').addEventListener('click', () => S.play(chordMidis().filter(n => n != null), 0.2));
+  $('#cOpen').addEventListener('click', () => { fret.sel = [0, 0, 0, 0, 0, 0]; renderFrets(); S.play(chordMidis(), 0.03); });
+  $('#cClear').addEventListener('click', () => { fret.sel = [null, null, null, null, null, null]; renderFrets(); });
+  $('#roots').addEventListener('click', e => {
+    const b = e.target.closest('[data-root]'); if (!b) return;
+    fret.root = +b.dataset.root; store.set({ scaleRoot: fret.root }); renderFrets();
+  });
+  $('#scaleSel').addEventListener('change', e => { fret.scale = e.target.value; store.set({ scale: fret.scale }); renderFrets(); });
+  $('#lblNotes').addEventListener('click', () => { fret.labels = 'notes'; store.set({ fretLabels: 'notes' }); renderFrets(); });
+  $('#lblDeg').addEventListener('click', () => { fret.labels = 'deg'; store.set({ fretLabels: 'deg' }); renderFrets(); });
 
   /* ================= PICKER SHEET ================= */
   let pickFor = null;
@@ -532,11 +630,12 @@
 
   /* ================= ROUTING ================= */
   function route() {
-    const v = ['tune', 'retune', 'atlas'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'tune';
+    const v = ['tune', 'retune', 'frets', 'atlas'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'tune';
     $$('.view').forEach(el => { el.hidden = el.id !== 'view-' + v; });
     $$('.tabs a').forEach(a => { if (a.dataset.tab === v) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
     if (v === 'tune') { renderTune(); onTuneReading(null); }
     if (v === 'retune') renderRetune();
+    if (v === 'frets') renderFrets();
     if (v === 'atlas') { renderChips(); renderAtlas(); }
     window.scrollTo(0, 0);
   }
