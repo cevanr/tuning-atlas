@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tuning Atlas</title>
+<meta name="description" content="A tuner, retune guide and chord atlas for 50+ alternate guitar tunings.">
+<meta name="theme-color" content="#f5f0e8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Tuning Atlas">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Crimson+Pro:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="#tune">Tuning<span>Atlas</span></a>
+    <nav class="tabs" aria-label="Sections">
+      <a href="#tune" data-tab="tune">Tune</a>
+      <a href="#retune" data-tab="retune">Retune</a>
+      <a href="#atlas" data-tab="atlas">Atlas</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- ============ TUNE ============ -->
+  <section class="view" id="view-tune" hidden>
+    <div class="col">
+      <button class="pick" type="button" data-pick="tune" aria-label="Change tuning">
+        <span class="pick-k">Tuning</span>
+        <span class="pick-name" id="tuneName"></span>
+        <span class="pick-sp" id="tuneSpelling"></span>
+        <span class="pick-chev" aria-hidden="true">▾</span>
+      </button>
+
+      <div class="meter" id="meter">
+        <div class="readout">
+          <div class="big-note" id="bigNote">–</div>
+          <div class="hz" id="hz">Tap Start, then play a string</div>
+        </div>
+        <svg class="gauge" id="gauge" viewBox="0 0 320 170" aria-hidden="true"></svg>
+        <div class="verdict" id="verdict" aria-live="polite">Tuner is off</div>
+      </div>
+
+      <div class="strings-row" id="targets" role="group" aria-label="Strings"></div>
+      <p class="hint" id="lockHint">Auto mode picks the closest string. Tap a string to lock onto it.</p>
+
+      <div class="actions">
+        <button class="btn primary" type="button" id="micBtn">Start tuner</button>
+        <button class="btn" type="button" id="refBtn">Play string</button>
+        <button class="btn" type="button" id="droneBtn" aria-pressed="false">Drone</button>
+      </div>
+
+      <div class="settings">
+        <span class="set-k">Reference pitch</span>
+        <div class="stepper">
+          <button type="button" class="btn sm" id="a4Down" aria-label="Lower reference pitch">−</button>
+          <output id="a4Val">A4 = 440 Hz</output>
+          <button type="button" class="btn sm" id="a4Up" aria-label="Raise reference pitch">+</button>
+        </div>
+      </div>
+      <p class="mic-err" id="micErr" hidden></p>
+    </div>
+  </section>
+
+  <!-- ============ RETUNE ============ -->
+  <section class="view" id="view-retune" hidden>
+    <div class="col">
+      <h1 class="h">Retune guide</h1>
+      <p class="lede">Pick where you are and where you're going. The guide shows each string's move, then walks you through it with the tuner.</p>
+
+      <div class="fromto">
+        <button class="pick" type="button" data-pick="from"><span class="pick-k">From</span><span class="pick-name" id="fromName"></span><span class="pick-sp" id="fromSp"></span><span class="pick-chev" aria-hidden="true">▾</span></button>
+        <button class="swap" type="button" id="swapBtn" aria-label="Swap from and to">⇅</button>
+        <button class="pick" type="button" data-pick="to"><span class="pick-k">To</span><span class="pick-name" id="toName"></span><span class="pick-sp" id="toSp"></span><span class="pick-chev" aria-hidden="true">▾</span></button>
+      </div>
+
+      <div class="moves" id="moves"></div>
+      <div class="actions">
+        <button class="btn primary" type="button" id="guideBtn">Start guided retune</button>
+      </div>
+
+      <div class="guide" id="guide" hidden>
+        <div class="guide-head">
+          <span class="step" id="gStep"></span>
+          <button class="btn sm ghost" type="button" id="gClose">Stop</button>
+        </div>
+        <div class="g-target">
+          <span class="g-str" id="gStr"></span>
+          <span class="g-move" id="gMove"></span>
+        </div>
+        <div class="meter small">
+          <div class="readout"><div class="big-note" id="gNote">–</div><div class="hz" id="gHz"></div></div>
+          <svg class="gauge" id="gGauge" viewBox="0 0 320 170" aria-hidden="true"></svg>
+          <div class="verdict" id="gVerdict" aria-live="polite"></div>
+        </div>
+        <div class="actions">
+          <button class="btn" type="button" id="gPrev">Back</button>
+          <button class="btn" type="button" id="gRef">Play target</button>
+          <button class="btn" type="button" id="gNext">Skip</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ATLAS ============ -->
+  <section class="view" id="view-atlas" hidden>
+    <div class="atlas-controls">
+      <div class="wide">
+        <div class="search-row">
+          <label class="search" for="q">
+            <input id="q" type="text" enterkeyhint="search" autocomplete="off" spellcheck="false" placeholder="Search name, artist, notes (DADGAD, C G C), chord…" aria-label="Search tunings">
+            <button class="clear" id="clear" type="button" aria-label="Clear search" hidden>×</button>
+          </label>
+          <span class="count" id="count" aria-live="polite"></span>
+        </div>
+        <div class="chips" id="chips" role="group" aria-label="Filter by family"></div>
+      </div>
+    </div>
+    <div class="wide">
+      <div class="tools">
+        <button class="tool" id="expandAll" type="button">Expand all</button>
+        <button class="tool" id="collapseAll" type="button">Collapse all</button>
+      </div>
+      <div id="groups"></div>
+      <div class="empty" id="empty" hidden><b>No tunings match</b>Try fewer words, or clear the filters.</div>
+      <p class="foot">Strings read low (6) → high (1) · x = mute · 0 = open · Every chord checked note by note against its tuning.</p>
+    </div>
+  </section>
+</main>
+
+<!-- tuning picker -->
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="sheet-head">
+      <b id="sheetTitle">Choose a tuning</b>
+      <button class="btn sm ghost" type="button" id="sheetClose">Close</button>
+    </div>
+    <input id="sheetQ" type="text" autocomplete="off" spellcheck="false" placeholder="Search tunings" aria-label="Search tunings">
+    <div class="sheet-list" id="sheetList"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="js/data.js"></script>
+<script src="js/pitch.js"></script>
+<script src="js/synth.js"></script>
+<script src="js/app.js"></script>
+<script>
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+</script>
+</body>
+</html>
