@@ -1,6 +1,6 @@
 // Offline support: the app shell is cached on install; fonts are cached the first time they load.
 // Bump VERSION whenever app files change so phones pick up the new version.
-const VERSION = 'tuning-atlas-v2';
+const VERSION = 'tuning-atlas-v3';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/data.js', 'js/pitch.js', 'js/synth.js', 'js/theory.js', 'js/app.js',

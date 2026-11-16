@@ -26,6 +26,7 @@
       <a href="#tune" data-tab="tune">Tune</a>
       <a href="#retune" data-tab="retune">Retune</a>
       <a href="#frets" data-tab="frets">Frets</a>
+      <a href="#capo" data-tab="capo">Capo</a>
       <a href="#atlas" data-tab="atlas">Atlas</a>
     </nav>
   </div>
@@ -158,6 +159,42 @@
       <div class="fb-wrap">
         <div class="fb" id="fb" role="grid" aria-label="Fretboard"></div>
       </div>
+    </div>
+  </section>
+
+  <!-- ============ CAPO ============ -->
+  <section class="view" id="view-capo" hidden>
+    <div class="col">
+      <button class="pick" type="button" data-pick="tune" aria-label="Change tuning">
+        <span class="pick-k">Tuning</span>
+        <span class="pick-name" id="capoTName"></span>
+        <span class="pick-sp" id="capoTSp"></span>
+        <span class="pick-chev" aria-hidden="true">▾</span>
+      </button>
+
+      <div class="capo-card">
+        <div class="capo-set">
+          <button type="button" class="btn sm" id="capoDown" aria-label="Move capo down a fret">−</button>
+          <div class="capo-val"><span class="set-k">Capo</span><output id="capoVal">Off</output></div>
+          <button type="button" class="btn sm" id="capoUp" aria-label="Move capo up a fret">+</button>
+        </div>
+        <div class="capo-sounds">
+          <span class="set-k">Open strings sound</span>
+          <div class="capo-strings" id="capoStrings"></div>
+          <p class="capo-key" id="capoKey"></p>
+        </div>
+      </div>
+      <p class="hint left">The capo you set here carries over to the Frets and Atlas tabs. Tune with the capo off.</p>
+
+      <h2 class="h2">Find the capo for a key</h2>
+      <div class="roots" id="keyRoots" role="group" aria-label="Key you need to play in"></div>
+      <div class="key-out" id="keyOut"></div>
+
+      <h2 class="h2">Transpose a song</h2>
+      <label class="sel" for="songChords"><span class="set-k">The song's chords, as they sound</span>
+        <textarea id="songChords" rows="2" spellcheck="false" autocomplete="off" placeholder="Paste or type chords, e.g. Bb F Gm Eb"></textarea>
+      </label>
+      <div class="song-out" id="songOut"></div>
     </div>
   </section>
 

@@ -25,6 +25,9 @@
     toId: byId(saved.toId) ? saved.toId : 'cgcfce',
     a4: saved.a4 >= 415 && saved.a4 <= 466 ? saved.a4 : 440,
     favs: new Set(Array.isArray(saved.favs) ? saved.favs : []),
+    capo: Number.isInteger(saved.capo) && saved.capo >= 0 && saved.capo <= 11 ? saved.capo : 0,
+    capoKey: Number.isInteger(saved.capoKey) ? saved.capoKey : null,
+    song: typeof saved.song === 'string' ? saved.song : '',
     q: '', cat: saved.cat || 'all', lowc: !!saved.lowc, open: new Set()
   };
 
@@ -161,9 +164,10 @@
       <button type="button" class="tgt${i === tuner.active ? ' active' : ''}${tuner.lock === i ? ' locked' : ''}${tuner.done.has(i) ? ' done' : ''}" data-i="${i}" aria-pressed="${tuner.lock === i}" aria-label="String ${STR_NUM[i]}, ${noteText(x)}${tuner.lock === i ? ', locked' : ''}">
         <span class="num">${STR_NUM[i]}</span><span class="nt">${noteHTML(x)}</span>
       </button>`).join('');
-    $('#lockHint').textContent = tuner.lock == null
+    $('#lockHint').textContent = (tuner.lock == null
       ? 'Auto mode picks the closest string. Tap a string to lock onto it.'
-      : `Locked on string ${STR_NUM[tuner.lock]}. Tap it again for auto mode.`;
+      : `Locked on string ${STR_NUM[tuner.lock]}. Tap it again for auto mode.`) +
+      (state.capo ? ` Capo ${state.capo} is set elsewhere in the app: tune with the capo off.` : '');
     $('#refBtn').textContent = `Play ${noteText(m[tuner.lock ?? tuner.active])}`;
     $('#a4Val').textContent = `A4 = ${state.a4} Hz`;
   }
@@ -237,6 +241,7 @@
     if (tuner.drone) startDrone();
     renderTune();
     if (!$('#view-frets').hidden) { fret.sel = [null, null, null, null, null, null]; renderFrets(); }
+    if (!$('#view-capo').hidden) renderCapo();
   }
 
   /* ================= RETUNE VIEW ================= */
@@ -351,13 +356,14 @@
     labels: saved.fretLabels === 'deg' ? 'deg' : 'notes'
   };
 
+  const fretMidis = () => midis(byId(state.tuneId)).map(x => x + state.capo);
   function chordMidis() {
-    const m = midis(byId(state.tuneId));
+    const m = fretMidis();
     return fret.sel.map((f, i) => f == null ? null : m[i] + f);
   }
   function renderFretChord() {
     const notes = chordMidis(), played = notes.filter(n => n != null);
-    $('#cTab').textContent = fret.sel.map(f => f == null ? 'x' : f).join(' ');
+    $('#cTab').textContent = fret.sel.map(f => f == null ? 'x' : f).join(' ') + (state.capo ? `  ·  capo ${state.capo}` : '');
     const name = $('#cName'), alt = $('#cAlt');
     if (!played.length) {
       name.textContent = 'Tap the fretboard'; name.classList.add('dim');
@@ -368,7 +374,12 @@
     name.classList.toggle('dim', !names.length);
     name.textContent = names.length ? names[0].name : 'No standard name';
     const pcs = [...new Set(played.map(n => NAMES[n % 12]))].join(' · ');
-    alt.textContent = (names.length > 1 ? `Also ${names.slice(1, 3).map(n => n.name).join(', ')} · ` : '') + `Notes: ${pcs}`;
+    let shape = '';
+    if (state.capo && names.length) {
+      const sh = T.nameChord(played.map(n => n - state.capo));
+      if (sh.length) shape = `${sh[0].name} shape at capo ${state.capo} · `;
+    }
+    alt.textContent = shape + (names.length > 1 ? `Also ${names.slice(1, 3).map(n => n.name).join(', ')} · ` : '') + `Notes: ${pcs}`;
   }
   function scaleOf() { return T.SCALES.find(s => s[0] === fret.scale); }
   function renderFretScale() {
@@ -380,11 +391,13 @@
     $('#scaleInfo').textContent = `${NAMES[fret.root]} ${sc[1]}: ` + sc[2].map(iv => NAMES[(fret.root + iv) % 12]).join(' · ') + '. Dark dots are the root. Tap any dot to hear it.';
   }
   function renderFretboard() {
-    const t = byId(state.tuneId), m = midis(t);
+    const m = fretMidis();
     const sc = scaleOf(), inScale = new Set(sc[2]);
     let h = '<span></span>' + m.map((x, i) => `<span class="hd"><span class="sn">${STR_NUM[i]}</span><span class="on">${noteHTML(x)}</span></span>`).join('');
     for (let f = 0; f <= FRETS; f++) {
-      h += `<span class="fn${INLAYS.has(f) ? ' inlay' : ''}">${f === 0 ? '' : f}</span>`;
+      h += f === 0
+        ? `<span class="fn capo-fn" title="${state.capo ? 'Capo at fret ' + state.capo : 'Nut'}">${state.capo ? 'capo<br>' + state.capo : ''}</span>`
+        : `<span class="fn${INLAYS.has(f + state.capo) ? ' inlay' : ''}">${f}</span>`;
       for (let i = 0; i < 6; i++) {
         const note = m[i] + f, pc = ((note % 12) + 12) % 12;
         const w = (1.6 - i * 0.18).toFixed(2) + 'px'; // heavier low strings
@@ -416,7 +429,7 @@
   $('#modeScale').addEventListener('click', () => setMode('scale'));
   $('#fb').addEventListener('click', e => {
     const c = e.target.closest('.cell'); if (!c) return;
-    const i = +c.dataset.s, f = +c.dataset.f, note = midis(byId(state.tuneId))[i] + f;
+    const i = +c.dataset.s, f = +c.dataset.f, note = fretMidis()[i] + f;
     if (fret.mode === 'chord') {
       fret.sel[i] = fret.sel[i] === f ? null : f;
       if (fret.sel[i] != null) S.play([note], 0);
@@ -436,6 +449,123 @@
   $('#scaleSel').addEventListener('change', e => { fret.scale = e.target.value; store.set({ scale: fret.scale }); renderFrets(); });
   $('#lblNotes').addEventListener('click', () => { fret.labels = 'notes'; store.set({ fretLabels: 'notes' }); renderFrets(); });
   $('#lblDeg').addEventListener('click', () => { fret.labels = 'deg'; store.set({ fretLabels: 'deg' }); renderFrets(); });
+
+  /* ================= CAPO VIEW ================= */
+  /** The tuning's home chord: its I (or i) chord, else its first nameable chord, else the low string. */
+  function homeChord(t) {
+    const ok = c => T.parseChord(c.label);
+    const c = t.chords.find(c => ok(c) && /^(I|i)\b/.test(c.fn)) || t.chords.find(ok);
+    if (c) { const p = T.parseChord(c.label); return { pc: p.root, label: c.label, minor: /^m(?!aj)/.test(p.quality) }; }
+    const pc = midis(t)[0] % 12;
+    return { pc, label: NAMES[pc], minor: false };
+  }
+  /** Shapes that are easy to play in a tuning: its own chart for alternate tunings, the open chords in standard. */
+  function easyShapes(t) {
+    if (t.id === 'standard') return new Set(T.STANDARD_EASY);
+    const s = new Set();
+    t.chords.forEach(c => { const p = T.parseChord(c.label); if (p) s.add(NAMES[p.root] + p.quality); });
+    return s;
+  }
+  function setCapo(n) {
+    state.capo = Math.max(0, Math.min(11, n));
+    store.set({ capo: state.capo });
+    if (!$('#view-capo').hidden) renderCapo();
+    if (!$('#view-frets').hidden) renderFrets();
+    if (!$('#view-atlas').hidden) { renderChips(); renderAtlas(); }
+    if (!$('#view-tune').hidden) renderTune();
+  }
+  const capoWord = n => n === 0 ? 'no capo' : `capo ${n}`;
+
+  function renderCapo() {
+    const t = byId(state.tuneId), home = homeChord(t), m = midis(t);
+    $('#capoTName').textContent = t.name; $('#capoTSp').textContent = t.spelling.replace(/\s*\(.*\)/, '');
+    $('#capoVal').textContent = state.capo ? state.capo : 'Off';
+    $('#capoDown').disabled = state.capo === 0; $('#capoUp').disabled = state.capo === 11;
+    $('#capoStrings').innerHTML = m.map(x => `<span>${noteHTML(x + state.capo)}</span>`).join('');
+    $('#capoKey').innerHTML = t.id === 'standard'
+      ? (state.capo
+        ? `A <b>G</b> shape now sounds as <b>${T.transposeChord('G', state.capo)}</b>, a <b>C</b> shape as <b>${T.transposeChord('C', state.capo)}</b>, an <b>Em</b> shape as <b>${T.transposeChord('Em', state.capo)}</b>.`
+        : 'Every shape sounds as written. Add a capo to move them up.')
+      : state.capo
+        ? `Home chord <b>${esc(home.label)}</b> now sounds as <b>${esc(T.transposeChord(home.label, state.capo))}</b>.`
+        : `Home chord <b>${esc(home.label)}</b>. Add a capo to move it up.`;
+
+    // key finder
+    $('#keyRoots').innerHTML = NAMES.map((n, i) => `<button type="button" data-key="${i}" aria-pressed="${state.capoKey === i}">${n}</button>`).join('');
+    if (state.capoKey == null) {
+      $('#keyOut').innerHTML = '<p class="hint left">Tap the key you need to play in.</p>';
+    } else {
+      const k = state.capoKey, kn = NAMES[k] + (home.minor ? 'm' : '');
+      let need = T.capoFor(home.pc, k);
+      let msg;
+      if (t.id === 'standard') {
+        // in standard, any key works; the useful answer is which open-chord shapes to use
+        const SHAPE_KEYS = ['G', 'C', 'D', 'A', 'E'];
+        const opts = [];
+        for (let n = 0; n <= 7; n++) { const sk = NAMES[((k - n) % 12 + 12) % 12]; if (SHAPE_KEYS.includes(sk)) opts.push({ n, sk }); }
+        need = opts.length ? opts[0].n : 0;
+        msg = opts.slice(0, 3).map(o => o.n === 0 ? `No capo: play in <b>${o.sk}</b> as written` : `Capo <b>${o.n}</b>, play <b>${o.sk}</b> shapes`).join('<br>');
+        msg = `To sound in <b>${NAMES[k]}</b> with open-chord shapes:<br>${msg}`;
+      } else msg = need === 0
+        ? `<b>${esc(t.name)}</b> is already in ${kn}. No capo needed.`
+        : need <= 7
+          ? `Put the capo on <b>fret ${need}</b>. ${esc(t.name)} will sound in <b>${kn}</b>.`
+          : `${esc(t.name)} needs the capo at <b>fret ${need}</b> for ${kn}, which is high. Try a tuning below, or tune the whole guitar down ${12 - need} half-step${12 - need > 1 ? 's' : ''} instead.`;
+      const alts = D.tunings.filter(x => x.id !== t.id && x.chords.length)
+        .map(x => { const h = homeChord(x); return { t: x, capo: T.capoFor(h.pc, k), minor: h.minor }; })
+        .filter(a => a.capo <= 4)
+        .sort((a, b) => a.capo - b.capo || (state.favs.has(b.t.id) - state.favs.has(a.t.id)) || a.t.name.localeCompare(b.t.name))
+        .slice(0, 10);
+      $('#keyOut').innerHTML = `
+        <div class="key-main"><p>${msg}</p>${need > 0 && need <= 11 && need !== state.capo ? `<button type="button" class="btn sm" data-setcapo="${need}">Set capo ${need}</button>` : ''}</div>
+        ${alts.length ? `<div class="alts"><div class="k">Other tunings that play in ${NAMES[k]} with little or no capo</div>
+          ${alts.map(a => `<button type="button" class="alt" data-usetuning="${a.t.id}" data-capo="${a.capo}">
+            <b>${esc(a.t.name)}${a.minor ? ' (minor)' : ''}</b><span class="sp">${esc(a.t.spelling.replace(/\s*\(.*\)/, ''))}</span><span class="cp">${capoWord(a.capo)}</span></button>`).join('')}
+        </div>` : ''}`;
+    }
+
+    // song transposer
+    const ta = $('#songChords');
+    if (document.activeElement !== ta) ta.value = state.song;
+    renderSong();
+  }
+  function renderSong() {
+    const t = byId(state.tuneId), chords = T.parseProgression(state.song);
+    if (!state.song.trim()) {
+      $('#songOut').innerHTML = `<p class="hint left">You'll get the shapes to play at each capo position in ${esc(t.name)}, with the easiest options marked. ${t.id === 'standard' ? 'Easy means open chords with no full barre.' : 'Easy means chords from this tuning’s chart.'}</p>`;
+      return;
+    }
+    if (!chords.length) { $('#songOut').innerHTML = '<p class="hint left">No chords found. Use names like G, Am7, D/F#, Bbmaj7.</p>'; return; }
+    const easy = easyShapes(t), r = T.rankCapos(chords, easy, 9);
+    const plain = s => { const c = T.parseChord(s); return NAMES[c.root] + c.quality; };
+    $('#songOut').innerHTML = r.rows.map(row => {
+      const best = r.best.indexOf(row.capo);
+      return `<button type="button" class="crow${best >= 0 ? ' best' : ''}${row.capo === state.capo ? ' cur' : ''}" data-setcapo="${row.capo}" aria-label="${capoWord(row.capo)}: play ${esc(row.shapes.join(' '))}">
+        <span class="c"><b>${row.capo ? 'Capo ' + row.capo : 'No capo'}</b>${row.capo === state.capo ? 'current' : ''}</span>
+        <span class="shapes">${row.shapes.map(s => `<span class="${easy.has(plain(s)) ? '' : 'hard'}">${esc(s)}</span>`).join('')}</span>
+        <span class="score">${best === 0 ? '<span class="tagb">Best</span>' : best > 0 ? '<span class="tagb">Good</span>' : ''}${row.easyCount}/${row.total} easy</span>
+      </button>`;
+    }).join('') + `<p class="hint left">Faded shapes are harder (barres or not in this tuning's chart). Tap a row to set that capo.</p>`;
+  }
+
+  $('#capoDown').addEventListener('click', () => setCapo(state.capo - 1));
+  $('#capoUp').addEventListener('click', () => setCapo(state.capo + 1));
+  $('#keyRoots').addEventListener('click', e => {
+    const b = e.target.closest('[data-key]'); if (!b) return;
+    state.capoKey = +b.dataset.key; store.set({ capoKey: state.capoKey }); renderCapo();
+  });
+  $('#view-capo').addEventListener('click', e => {
+    const u = e.target.closest('[data-usetuning]');
+    if (u) { setTuning(u.dataset.usetuning); setCapo(+u.dataset.capo); toast(`${byId(u.dataset.usetuning).name}, ${capoWord(+u.dataset.capo)}`); return; }
+    const c = e.target.closest('[data-setcapo]');
+    if (c) { setCapo(+c.dataset.setcapo); toast(state.capo ? `Capo set to fret ${state.capo}` : 'Capo off'); }
+  });
+  let songTimer = 0;
+  $('#songChords').addEventListener('input', e => {
+    state.song = e.target.value; clearTimeout(songTimer);
+    songTimer = setTimeout(() => { store.set({ song: state.song }); }, 400);
+    renderSong();
+  });
 
   /* ================= PICKER SHEET ================= */
   let pickFor = null;
@@ -520,7 +650,7 @@
     return '<div class="tab" aria-label="' + esc(c.label + ': ' + c.tab) + '">' +
       notes.map(n => `<span class="s">${esc(n)}</span>`).join('') +
       frets.map((f, i) => f === 'x' ? '<span class="f x" title="Muted">x</span>'
-        : `<button type="button" class="f${f === '0' ? ' o' : ''}" data-note="${m[i] + +f}" aria-label="String ${STR_NUM[i]}, fret ${esc(f)}: ${noteText(m[i] + +f)}">${esc(f)}</button>`).join('') + '</div>';
+        : `<button type="button" class="f${f === '0' ? ' o' : ''}" data-note="${m[i] + +f + state.capo}" aria-label="String ${STR_NUM[i]}, fret ${esc(f)}: ${noteText(m[i] + +f + state.capo)}">${esc(f)}</button>`).join('') + '</div>';
   }
   function cardHTML(t, ts) {
     const open = state.open.has(t.id), fav = state.favs.has(t.id);
@@ -541,7 +671,7 @@
         </div>
         <div class="listen">
           <span class="lbl">Open strings</span>
-          <div class="opens">${midis(t).map((m, i) => `<button type="button" class="open-s" data-note="${m}" aria-label="String ${STR_NUM[i]}: ${noteText(m)}">${noteHTML(m)}</button>`).join('')}</div>
+          <div class="opens">${midis(t).map(x => x + state.capo).map((m, i) => `<button type="button" class="open-s" data-note="${m}" aria-label="String ${STR_NUM[i]}: ${noteText(m)}">${noteHTML(m)}</button>`).join('')}</div>
           <div class="acts">
             <button type="button" class="play" data-strum="${t.id}" data-gap="0.035">▶ Strum</button>
             <button type="button" class="play ghost" data-strum="${t.id}" data-gap="0.32">Low to high</button>
@@ -549,7 +679,7 @@
         </div>
         ${t.chords.length ? `<div class="chords">${t.chords.map((c, ci) => `
           <div class="chord${hit(c) ? ' hit' : ''}">
-            <div class="ch-top"><h3>${esc(c.label)}</h3>
+            <div class="ch-top"><h3>${esc(c.label)}${state.capo && T.parseChord(c.label) ? ` <span class="sounds">sounds ${esc(T.transposeChord(c.label, state.capo))}</span>` : ''}</h3>
               <span class="acts">
                 <button type="button" class="play sm" data-chord="${t.id}:${ci}" data-gap="0.03" aria-label="Strum ${esc(c.label)}">▶</button>
                 <button type="button" class="play sm ghost" data-chord="${t.id}:${ci}" data-gap="0.2" aria-label="Pick ${esc(c.label)} one string at a time">Arp</button>
@@ -567,7 +697,8 @@
     if (state.favs.size) chips.push(['favs', '★ Favorites', base.filter(t => state.favs.has(t.id)).length]);
     D.cats.forEach(([id, name]) => chips.push([id, name, base.filter(t => t.cat === id).length]));
     if (state.cat === 'favs' && !state.favs.size) state.cat = 'all';
-    $('#chips').innerHTML = `<button class="chip toggle" type="button" data-lowc aria-pressed="${state.lowc}">Low C only</button>` +
+    $('#chips').innerHTML = (state.capo ? `<button class="chip toggle capo-chip" type="button" data-capo-off aria-pressed="true" title="Turn the capo off">Capo ${state.capo} ✕</button>` : '') +
+      `<button class="chip toggle" type="button" data-lowc aria-pressed="${state.lowc}">Low C only</button>` +
       chips.map(([id, name, n]) => `<button class="chip" type="button" data-cat="${id}" aria-pressed="${state.cat === id}">${esc(name)}<span class="n">${n}</span></button>`).join('');
   }
   function renderAtlas() {
@@ -587,6 +718,7 @@
   $('#clear').addEventListener('click', () => { state.q = ''; $('#q').value = ''; state.open.clear(); renderAtlas(); $('#q').focus(); });
   $('#chips').addEventListener('click', e => {
     const b = e.target.closest('.chip'); if (!b) return;
+    if (b.hasAttribute('data-capo-off')) { setCapo(0); return; }
     if (b.hasAttribute('data-lowc')) state.lowc = !state.lowc; else state.cat = b.dataset.cat;
     store.set({ cat: state.cat, lowc: state.lowc }); renderChips(); renderAtlas();
   });
@@ -597,14 +729,14 @@
     if (one) { S.play([+one.dataset.note], 0); flash(one); return; }
     const s = e.target.closest('[data-strum]');
     if (s) {
-      const gap = +s.dataset.gap; S.play(midis(byId(s.dataset.strum)), gap); flash(s);
+      const gap = +s.dataset.gap; S.play(midis(byId(s.dataset.strum)).map(x => x + state.capo), gap); flash(s);
       s.closest('.card').querySelectorAll('.open-s').forEach((b, i) => setTimeout(() => flash(b), 30 + i * gap * 1000));
       return;
     }
     const ch = e.target.closest('[data-chord]');
     if (ch) {
       const [id, ci] = ch.dataset.chord.split(':'), t = byId(id), c = t.chords[+ci], m = midis(t), gap = +ch.dataset.gap;
-      S.play(c.tab.split(/\s+/).map((f, i) => f === 'x' ? null : m[i] + +f).filter(v => v !== null), gap); flash(ch);
+      S.play(c.tab.split(/\s+/).map((f, i) => f === 'x' ? null : m[i] + +f + state.capo).filter(v => v !== null), gap); flash(ch);
       [...ch.closest('.chord').querySelectorAll('.tab .f')].filter(f => !f.classList.contains('x')).forEach((f, i) => setTimeout(() => flash(f), 30 + i * gap * 1000));
       return;
     }
@@ -630,12 +762,13 @@
 
   /* ================= ROUTING ================= */
   function route() {
-    const v = ['tune', 'retune', 'frets', 'atlas'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'tune';
+    const v = ['tune', 'retune', 'frets', 'capo', 'atlas'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'tune';
     $$('.view').forEach(el => { el.hidden = el.id !== 'view-' + v; });
     $$('.tabs a').forEach(a => { if (a.dataset.tab === v) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
     if (v === 'tune') { renderTune(); onTuneReading(null); }
     if (v === 'retune') renderRetune();
     if (v === 'frets') renderFrets();
+    if (v === 'capo') renderCapo();
     if (v === 'atlas') { renderChips(); renderAtlas(); }
     window.scrollTo(0, 0);
   }

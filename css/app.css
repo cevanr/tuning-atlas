@@ -68,7 +68,7 @@ button { font: inherit; color: inherit; }
     border-top: 2px solid var(--ink); gap: 0;
     padding: 6px var(--gutter-r) calc(6px + env(safe-area-inset-bottom, 0px)) var(--gutter-l);
   }
-  .tabs a { flex: 1; text-align: center; padding: 12px 0; font-size: 12px; letter-spacing: 1px; }
+  .tabs a { flex: 1; text-align: center; padding: 12px 0; font-size: 11.5px; letter-spacing: .5px; }
   .brand { font-size: 26px; }
 }
 
@@ -359,6 +359,56 @@ mark { background: var(--hl); color: inherit; padding: 0 1px; }
 .fb .cell.nut .dot.open { background: var(--card); color: var(--accent); }
 .fb .mute { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-family: var(--f-mono); font-size: 14px; color: var(--faint); }
 
+/* ---------- capo ---------- */
+.h2 { font-family: var(--f-display); font-weight: 400; font-size: 26px; letter-spacing: 2px; color: var(--accent); margin: 10px 0 -4px; display: flex; align-items: center; gap: 12px; }
+.h2::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.capo-card { background: var(--card); border: 1px solid var(--rule); border-radius: 2px; padding: 16px; display: grid; gap: 14px; }
+.capo-set { display: flex; align-items: center; justify-content: center; gap: 18px; }
+.capo-set .btn.sm { width: 52px; height: 52px; font-size: 22px; padding: 0; }
+.capo-val { display: grid; justify-items: center; gap: 0; min-width: 110px; }
+.capo-val output { font-family: var(--f-display); font-size: 54px; line-height: 1; color: var(--ink); font-variant-numeric: tabular-nums; }
+.capo-sounds { display: grid; gap: 6px; justify-items: center; text-align: center; }
+.capo-strings { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+.capo-strings span { min-width: 40px; padding: 5px 4px; border-bottom: 2px solid var(--rule); font-family: var(--f-mono); font-weight: 600; font-size: 14px; color: var(--accent); }
+.capo-strings sub { font-size: 9px; color: var(--muted); font-weight: 400; }
+.capo-key { margin: 0; font-size: 16px; }
+.capo-key b { font-family: var(--f-mono); color: var(--ink); }
+.key-out, .song-out { display: grid; gap: 8px; }
+.key-main { background: var(--card); border: 1px solid var(--accent); border-radius: 2px; padding: 12px 14px; display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.key-main p { margin: 0; font-size: 16px; min-width: 0; flex: 1 1 200px; }
+.key-main b { font-family: var(--f-mono); color: var(--ink); }
+.alts { display: grid; gap: 3px; }
+.alts .k { font-family: var(--f-mono); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); padding: 6px 2px 2px; }
+.alt {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center; text-align: left;
+  background: var(--card); border: 1px solid var(--rule); border-radius: 2px; padding: 9px 12px; cursor: pointer;
+}
+.alt:hover { border-color: var(--ink); }
+.alt b { font-family: var(--f-mono); font-size: 13.5px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.alt .sp { font-family: var(--f-mono); font-size: 11.5px; letter-spacing: 1px; color: var(--accent); white-space: nowrap; }
+.alt .cp { font-family: var(--f-mono); font-size: 12px; color: var(--muted); white-space: nowrap; min-width: 58px; text-align: right; }
+textarea#songChords {
+  font-family: var(--f-mono); font-size: 16px; color: var(--ink); background: var(--card); border: 1px solid var(--rule);
+  border-radius: 2px; padding: 10px 12px; width: 100%; resize: vertical; outline: none;
+}
+textarea#songChords:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.crow {
+  display: grid; grid-template-columns: 74px minmax(0, 1fr) auto; gap: 10px; align-items: center; text-align: left; width: 100%;
+  background: var(--card); border: 1px solid var(--rule); border-radius: 2px; padding: 10px 12px; cursor: pointer;
+}
+.crow:hover { border-color: var(--ink); }
+.crow.best { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.crow.cur { background: var(--accent-soft); }
+.crow .c { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+.crow .c b { display: block; font-size: 14px; color: var(--ink); }
+.crow .shapes { font-family: var(--f-mono); font-size: 15px; color: var(--ink); display: flex; flex-wrap: wrap; gap: 4px 10px; min-width: 0; }
+.crow .shapes .hard { color: var(--faint); }
+.crow .score { font-family: var(--f-mono); font-size: 11px; color: var(--muted); text-align: right; white-space: nowrap; }
+.crow .score .tagb { display: block; color: var(--accent); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; font-size: 10px; }
+.sounds { font-family: var(--f-mono); font-size: 10.5px; color: var(--muted); letter-spacing: .5px; }
+.capo-chip { flex: none; }
+.capo-badge { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: 1px; text-transform: uppercase; background: var(--ink); color: var(--paper); padding: 3px 7px; border-radius: 2px; }
+
 /* ---------- picker sheet ---------- */
 .sheet { position: fixed; inset: 0; z-index: 50; background: rgba(26, 22, 18, .35); display: flex; align-items: flex-end; justify-content: center; }
 .sheet-card {
@@ -388,3 +438,6 @@ mark { background: var(--hl); color: inherit; padding: 0 1px; }
 }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+.fb .fn.capo-fn { font-size: 8.5px; line-height: 1.1; color: var(--paper); background: var(--ink); border-radius: 2px; padding: 3px 0; margin: 0 3px; text-transform: uppercase; letter-spacing: .5px; }
+.fb .fn.capo-fn:empty { background: none; }
+.btn:disabled { opacity: .4; cursor: default; }

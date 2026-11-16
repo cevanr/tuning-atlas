@@ -76,12 +76,55 @@
     ['gong', 'Gong pentatonic (China)', [0, 2, 4, 7, 9]],
     ['slendro', 'Slendro-like (Java)', [0, 2, 5, 7, 9]]
   ];
-  const scaleDegree = (iv, scale) => {
-    // label each scale tone 1..7 style using standard degree names
-    return DEG[iv];
-  };
+  /* ---------- capo and transposition ---------- */
+  const PC = { C: 0, 'B#': 0, 'C#': 1, Db: 1, D: 2, 'D#': 3, Eb: 3, E: 4, Fb: 4, F: 5, 'E#': 5, 'F#': 6, Gb: 6, G: 7, 'G#': 8, Ab: 8, A: 9, 'A#': 10, Bb: 10, B: 11, Cb: 11 };
+  const CHORD_RE = /^([A-G][#b]?)([^\s/]*)(?:\/([A-G][#b]?))?$/;
 
-  const api = { nameChord, SCALES, NAMES, DEG, scaleDegree };
+  /** Split a chord name into root, quality and optional bass. Returns null if it isn't a chord. */
+  function parseChord(name) {
+    const m = CHORD_RE.exec(String(name).trim());
+    if (!m || !(m[1] in PC)) return null;
+    if (m[2] && !/^(m|maj|min|dim|aug|sus|add|\d|\(|-|\+|M|°|ø)/.test(m[2])) return null;
+    return { root: PC[m[1]], quality: m[2] || '', bass: m[3] && m[3] in PC ? PC[m[3]] : null };
+  }
+  /** Move a chord name by n half-steps: transposeChord('G/B', 2) === 'A/C#'. */
+  function transposeChord(name, n) {
+    const c = parseChord(name);
+    if (!c) return name;
+    const sh = x => NAMES[((x + n) % 12 + 12) % 12];
+    return sh(c.root) + c.quality + (c.bass != null ? '/' + sh(c.bass) : '');
+  }
+  /** Pull chord names out of free text like "| G  D/F# | Em C |" (ignores bar lines and junk). */
+  function parseProgression(text) {
+    return String(text).replace(/[|,;]+/g, ' ').split(/\s+/).filter(Boolean).filter(w => parseChord(w));
+  }
+  /** Capo fret (0–11) that makes a tuning whose home key is `homePc` sound in `keyPc`. */
+  const capoFor = (homePc, keyPc) => ((keyPc - homePc) % 12 + 12) % 12;
+
+  /**
+   * Rank capo positions for a song: for each capo, the shapes you'd play, and how many are easy.
+   * @param {string[]} chords  the song's chords as they sound
+   * @param {Set<string>} easy shapes that are easy in this tuning (root+quality, no bass)
+   */
+  function rankCapos(chords, easy, maxCapo = 9) {
+    const uniq = [...new Set(chords)];
+    const rows = [];
+    for (let capo = 0; capo <= maxCapo; capo++) {
+      const shapes = uniq.map(ch => transposeChord(ch, -capo));
+      const plain = s => { const c = parseChord(s); return NAMES[c.root] + c.quality; };
+      const easyCount = shapes.filter(s => easy.has(plain(s))).length;
+      rows.push({ capo, shapes, easyCount, total: uniq.length });
+    }
+    // best: most easy shapes, then lowest capo
+    const ranked = [...rows].sort((a, b) => b.easyCount - a.easyCount || a.capo - b.capo);
+    return { rows, best: ranked.slice(0, 3).filter(r => r.easyCount > 0).map(r => r.capo) };
+  }
+
+  // Shapes most players find easy in standard tuning (open chords, no full barres).
+  const STANDARD_EASY = ['C', 'A', 'G', 'E', 'D', 'Am', 'Em', 'Dm', 'A7', 'B7', 'C7', 'D7', 'E7', 'G7',
+    'Am7', 'Em7', 'Dm7', 'Cmaj7', 'Fmaj7', 'Amaj7', 'Dmaj7', 'Dsus2', 'Dsus4', 'Asus2', 'Asus4', 'Esus4', 'Cadd9', 'G6', 'A6', 'E5', 'A5', 'D5'];
+
+  const api = { nameChord, SCALES, NAMES, DEG, PC, parseChord, transposeChord, parseProgression, capoFor, rankCapos, STANDARD_EASY };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Theory = api;
 })(typeof window !== 'undefined' ? window : globalThis);
