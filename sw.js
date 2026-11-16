@@ -1,9 +1,10 @@
 // Offline support: the app shell is cached on install; fonts are cached the first time they load.
-// Bump VERSION whenever app files change so phones pick up the new version.
-const VERSION = 'tuning-atlas-v3';
+// Bump VERSION (and the ?v= numbers in index.html) whenever app files change, so browsers never mix old and new files.
+const VERSION = 'tuning-atlas-v4';
+const Q = '?v=' + VERSION.split('-v').pop();
 const SHELL = [
-  './', 'index.html', 'manifest.webmanifest', 'css/app.css',
-  'js/data.js', 'js/pitch.js', 'js/synth.js', 'js/theory.js', 'js/app.js',
+  './', 'index.html', 'manifest.webmanifest', 'css/app.css' + Q,
+  'js/data.js' + Q, 'js/pitch.js' + Q, 'js/synth.js' + Q, 'js/theory.js' + Q, 'js/app.js' + Q,
   'icons/icon.svg', 'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png'
 ];
 
@@ -28,7 +29,7 @@ self.addEventListener('fetch', e => {
   // app files: network first so updates show up, cache when offline
   if (url.origin === location.origin) {
     e.respondWith(
-      fetch(req).then(res => {
+      fetch(req, { cache: 'no-cache' }).then(res => {
         const copy = res.clone();
         caches.open(VERSION).then(c => c.put(req, copy));
         return res;

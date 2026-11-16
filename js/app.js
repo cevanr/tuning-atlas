@@ -5,6 +5,20 @@
   const D = window.ATLAS;
   const P = window.Pitch;
   const S = window.Synth;
+
+  // If the browser handed us an old copy of one of the other files, clear the caches and reload once.
+  const filesOk = D && P && P.detectPitch && S && S.play && window.Theory && window.Theory.parseChord && window.Theory.capoFor;
+  if (!filesOk) {
+    let tried = false;
+    try { tried = sessionStorage.getItem('atlas-reloaded') === '1'; sessionStorage.setItem('atlas-reloaded', '1'); } catch (e) {}
+    if (!tried) {
+      const wipe = 'caches' in window ? caches.keys().then(ks => Promise.all(ks.map(k => caches.delete(k)))) : Promise.resolve();
+      wipe.finally(() => location.reload());
+      return;
+    }
+    document.body.insertAdjacentHTML('afterbegin', '<p style="margin:0;padding:12px 16px;background:#8b2e00;color:#fff;font:14px sans-serif">Some app files didn’t update. Pull down to refresh, or clear this site’s data in your browser settings.</p>');
+  }
+  try { sessionStorage.removeItem('atlas-reloaded'); } catch (e) {}
   const $ = s => document.querySelector(s);
   const $$ = s => [...document.querySelectorAll(s)];
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -50,6 +64,9 @@
   const noteText = m => NAMES[((m % 12) + 12) % 12] + (Math.floor(m / 12) - 1);
   const freqOf = m => state.a4 * Math.pow(2, (m - 69) / 12);
   const midiOf = f => 69 + 12 * Math.log2(f / state.a4);
+
+  /** Run a render step; if it fails, log it and keep the rest of the app working. */
+  function safe(fn) { try { fn(); } catch (e) { console.error(e); } }
 
   function toast(msg) {
     const el = $('#toast'); el.textContent = msg; el.hidden = false;
@@ -239,9 +256,9 @@
     state.tuneId = id; store.set({ tuneId: id });
     tuner.lock = null; tuner.active = 0; tuner.done.clear();
     if (tuner.drone) startDrone();
-    renderTune();
-    if (!$('#view-frets').hidden) { fret.sel = [null, null, null, null, null, null]; renderFrets(); }
-    if (!$('#view-capo').hidden) renderCapo();
+    safe(renderTune);
+    safe(() => { if (!$('#view-frets').hidden) { fret.sel = [null, null, null, null, null, null]; renderFrets(); } });
+    safe(() => { if (!$('#view-capo').hidden) renderCapo(); });
   }
 
   /* ================= RETUNE VIEW ================= */
@@ -469,10 +486,10 @@
   function setCapo(n) {
     state.capo = Math.max(0, Math.min(11, n));
     store.set({ capo: state.capo });
-    if (!$('#view-capo').hidden) renderCapo();
-    if (!$('#view-frets').hidden) renderFrets();
-    if (!$('#view-atlas').hidden) { renderChips(); renderAtlas(); }
-    if (!$('#view-tune').hidden) renderTune();
+    safe(() => { if (!$('#view-capo').hidden) renderCapo(); });
+    safe(() => { if (!$('#view-frets').hidden) renderFrets(); });
+    safe(() => { if (!$('#view-atlas').hidden) { renderChips(); renderAtlas(); } });
+    safe(() => { if (!$('#view-tune').hidden) renderTune(); });
   }
   const capoWord = n => n === 0 ? 'no capo' : `capo ${n}`;
 
@@ -600,15 +617,15 @@
   $('#sheet').addEventListener('click', e => { if (e.target === $('#sheet')) closePicker(); });
   $('#sheetList').addEventListener('click', e => {
     const o = e.target.closest('.opt'); if (!o) return;
-    const id = o.dataset.id;
-    if (pickFor === 'tune') setTuning(id);
+    const id = o.dataset.id, which = pickFor;
+    closePicker();
+    if (which === 'tune') setTuning(id);
     else {
-      state[pickFor === 'from' ? 'fromId' : 'toId'] = id;
+      state[which === 'from' ? 'fromId' : 'toId'] = id;
       store.set({ fromId: state.fromId, toId: state.toId });
       if (guide.on) endGuide(false);
       renderRetune();
     }
-    closePicker();
   });
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && !$('#sheet').hidden) closePicker();
